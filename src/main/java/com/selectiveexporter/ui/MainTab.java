@@ -138,7 +138,7 @@ public class MainTab extends JPanel {
                 api.logging().logToOutput("Export saved to " + file.getAbsolutePath());
                 JOptionPane.showMessageDialog(this, "Export saved successfully!");
             } catch (Exception ex) {
-                api.logging().logError("Error saving file: " + ex.getMessage());
+                api.logging().logToError("Error saving file: " + ex.getMessage());
                 JOptionPane.showMessageDialog(this, "Error saving file: " + ex.getMessage(), "Error", JOptionPane.ERROR_MESSAGE);
             }
         }
