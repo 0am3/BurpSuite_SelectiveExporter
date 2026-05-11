@@ -1,5 +1,6 @@
 package com.selectiveexporter.ui;
 
+import burp.api.montoya.MontoyaApi;
 import burp.api.montoya.http.message.HttpRequestResponse;
 import com.selectiveexporter.logic.Exporter;
 import javax.swing.*;
