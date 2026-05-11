@@ -13,6 +13,10 @@ public class MainTab extends JPanel {
     private final MontoyaApi api;
     private final Exporter exporter;
     private final JTextArea resultArea;
+    private final JCheckBox reqHeadersCheck;
+    private final JCheckBox reqBodyCheck;
+    private final JCheckBox resHeadersCheck;
+    private final JCheckBox resBodyCheck;
     private List<HttpRequestResponse> selectedItems = new ArrayList<>();
 
     public MainTab(MontoyaApi api) {
@@ -47,11 +51,22 @@ public class MainTab extends JPanel {
 
         gbc.gridx = 1;
         JPanel checks = new JPanel(new FlowLayout(FlowLayout.LEFT));
-        checks.add(new JCheckBox("Request Headers", true));
-        checks.add(new JCheckBox("Request Body", true));
-        checks.add(new JCheckBox("Response Headers", false));
-        checks.add(new JCheckBox("Response Body", true));
+        reqHeadersCheck = new JCheckBox("Request Headers", true);
+        reqBodyCheck = new JCheckBox("Request Body", true);
+        resHeadersCheck = new JCheckBox("Response Headers", false);
+        resBodyCheck = new JCheckBox("Response Body", true);
+
+        checks.add(reqHeadersCheck);
+        checks.add(reqBodyCheck);
+        checks.add(resHeadersCheck);
+        checks.add(resBodyCheck);
         configPanel.add(checks, gbc);
+
+        // Add listeners to refresh preview when checkboxes are toggled
+        reqHeadersCheck.addActionListener(e -> generateExport());
+        reqBodyCheck.addActionListener(e -> generateExport());
+        resHeadersCheck.addActionListener(e -> generateExport());
+        resBodyCheck.addActionListener(e -> generateExport());
 
         // Result Preview
         resultArea = new JTextArea(15, 60);
@@ -65,9 +80,11 @@ public class MainTab extends JPanel {
         // Footer / Actions
         JPanel actionPanel = new JPanel(new FlowLayout(FlowLayout.RIGHT));
         JButton copyButton = new JButton("Copy to Clipboard");
+        JButton saveButton = new JButton("Export to File");
         JButton exportButton = new JButton("Generate Export");
         
         actionPanel.add(copyButton);
+        actionPanel.add(saveButton);
         actionPanel.add(exportButton);
         add(actionPanel, BorderLayout.SOUTH);
 
@@ -77,6 +94,8 @@ public class MainTab extends JPanel {
             Toolkit.getDefaultToolkit().getSystemClipboard().setContents(selection, selection);
             api.logging().logToOutput("Export copied to clipboard.");
         });
+
+        saveButton.addActionListener(e -> saveToFile());
     }
 
     public void setSelectedItems(List<HttpRequestResponse> items) {
@@ -93,10 +112,35 @@ public class MainTab extends JPanel {
 
         StringBuilder sb = new StringBuilder();
         for (HttpRequestResponse item : selectedItems) {
-            sb.append(exporter.exportToMarkdown(item.request(), item.response()));
+            sb.append(exporter.exportToMarkdown(
+                    item.request(), 
+                    item.response(),
+                    reqHeadersCheck.isSelected(),
+                    reqBodyCheck.isSelected(),
+                    resHeadersCheck.isSelected(),
+                    resBodyCheck.isSelected()
+            ));
             sb.append("\n---\n\n");
         }
         resultArea.setText(sb.toString());
         resultArea.setCaretPosition(0);
+    }
+
+    private void saveToFile() {
+        if (resultArea.getText().isEmpty()) return;
+
+        JFileChooser fileChooser = new JFileChooser();
+        fileChooser.setDialogTitle("Save Export");
+        if (fileChooser.showSaveDialog(this) == JFileChooser.APPROVE_OPTION) {
+            java.io.File file = fileChooser.getSelectedFile();
+            try (java.io.FileWriter writer = new java.io.FileWriter(file)) {
+                writer.write(resultArea.getText());
+                api.logging().logToOutput("Export saved to " + file.getAbsolutePath());
+                JOptionPane.showMessageDialog(this, "Export saved successfully!");
+            } catch (Exception ex) {
+                api.logging().logError("Error saving file: " + ex.getMessage());
+                JOptionPane.showMessageDialog(this, "Error saving file: " + ex.getMessage(), "Error", JOptionPane.ERROR_MESSAGE);
+            }
+        }
     }
 }
